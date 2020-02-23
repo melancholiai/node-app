@@ -20,3 +20,11 @@ module.exports.Unauthorized = class Unauthorized extends Error {
     this.status = 401;
   }
 };
+
+module.exports.NotFound = class NotFound extends Error {
+  constructor(message = 'Page Not Found') {
+    super(message);
+
+    this.status = 404;
+  }
+};

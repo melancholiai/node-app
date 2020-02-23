@@ -3,7 +3,7 @@ const session = require('express-session');
 
 const { SESSION_OPTIONS } = require('./config/cache-config');
 const { authUser, password } = require('./routes/auth');
-const { user } = require('./routes/main');
+const { user, friendRequest, blackList, tags } = require('./routes/main');
 const { notFound, serverError } = require('./middleware/errors');
 const swaggerInit = require('./services/swagger');
 
@@ -40,6 +40,12 @@ module.exports.createApp = store => {
   app.use('/auth/password', password);
 
   app.use('/user', user);
+
+  app.use('/friendrequest', friendRequest);
+
+  app.use('/blacklist', blackList);
+
+  app.use('/tags', tags);
 
   app.use(notFound);
 
