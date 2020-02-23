@@ -10,7 +10,7 @@ module.exports = {
   APP_HOSTNAME_DOCKER
 } = process.env;
 
-module.exports.APP_URL = `${APP_PROTOCOL}://${APP_HOSTNAME_DOCKER}:${APP_PORT}`
+module.exports.APP_URL = `${APP_PROTOCOL}://${APP_HOSTNAME}:${APP_PORT}`
 
 // module.exports.IN_PROD = NODE_ENV === 'production';
 module.exports.IN_PROD = false;

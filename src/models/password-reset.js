@@ -41,7 +41,6 @@ passwordResetSchema.methods.isValid = function() {
 
 passwordResetSchema.pre('save', function() {
   if (!this.expiredAt) {
-    console.log(new Date(new Date().getTime() + PASSWORD_RESET_TIMEOUT))
     this.expiredAt = new Date(new Date().getTime() + parseInt(PASSWORD_RESET_TIMEOUT));
   }
   this.used = false;

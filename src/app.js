@@ -2,7 +2,8 @@ const express = require('express');
 const session = require('express-session');
 
 const { SESSION_OPTIONS } = require('./config/cache-config');
-const { user, password } = require('./routes/auth');
+const { authUser, password } = require('./routes/auth');
+const { user } = require('./routes/main');
 const { notFound, serverError } = require('./middleware/errors');
 const swaggerInit = require('./services/swagger');
 
@@ -34,9 +35,11 @@ module.exports.createApp = store => {
 
   swaggerInit(app, '/api-docs');
 
-  app.use('/auth', user);
+  app.use('/auth', authUser);
 
   app.use('/auth/password', password);
+
+  app.use('/user', user);
 
   app.use(notFound);
 

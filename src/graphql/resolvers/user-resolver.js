@@ -6,7 +6,7 @@ const {
   userLoginSchema
 } = require('../../joi-schemas/user-schema');
 const { objectIdSchema } = require('../../joi-schemas/utils');
-const auth = require('../../auth/auth-garaphql');
+const auth = require('../../util/auth-garaphql');
 
 module.exports = {
   Query: {
