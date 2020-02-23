@@ -1,0 +1,69 @@
+version: '3.7'
+
+services:
+  node:
+    container_name: ${APP_NAME}
+    build:
+      context: .
+      dockerfile: docker/docker-chatapp.dockerfile
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app
+    ports:
+        - '${APP_PORT}:${APP_PORT}'
+        - '9229:9229'
+    networks:
+        - ${APP_NAME}-network
+  
+  cache:
+    container_name: redis-cache
+    build:
+      context: .
+      dockerfile: docker/docker-redis.dockerfile
+    ports:
+      - '${REDIS_PORT_DOCKER}:${REDIS_PORT_DOCKER}'
+    volumes: 
+      - ../data/redis:/data
+    networks:
+      - ${APP_NAME}-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=docker-cluster
+      - discovery.seed_hosts=elasticsearch
+      - cluster.initial_master_nodes=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - '${ELASTICSEARCH_PORT}:${ELASTICSEARCH_PORT}'
+    networks:
+      - ${APP_NAME}-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.6.0
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_URL: "http://elasticsearch:${ELASTICSEARCH_PORT}"
+    ports:
+      - '${KIBANA_PORT}:${KIBANA_PORT}'
+    depends_on:
+      - 'elasticsearch'
+    networks:
+        - ${APP_NAME}-network
+
+volumes:
+    esdata:
+      driver: local
+
+networks:
+    chatapp-network:
+      driver: bridge

@@ -1,0 +1,11 @@
+node_modules
+
+*.log*
+
+.env
+
+*.conf*
+
+docker/config/redis.conf
+
+docker/config/elasticsearch.conf

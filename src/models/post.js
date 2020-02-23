@@ -1,0 +1,60 @@
+const mongoose = require('mongoose');
+
+const Schema = mongoose.Schema;
+
+const postSchema = new Schema(
+  {
+    createdById: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true
+    },
+    imageUrl: {
+      type: String,
+      required: true
+    },
+    location: {
+      lat: Number,
+      lng: Number,
+      required: true
+    },
+    description: {
+      type: String
+    },
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Comment'
+      }
+    ],
+    likes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Likes'
+      }
+    ],
+    tags: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Tag'
+      }
+    ],
+    taggedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    isPublic: {
+      type: Boolean,
+      required: true
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+const Post = mongoose.model('Post', postSchema);
+module.exports = Post;
