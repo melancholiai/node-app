@@ -1,4 +1,3 @@
-const { createGraphqlApp } = require('./app-graphql');
 const { createApp } = require('./app');
 const {
   APP_URL,

@@ -1,4 +1,4 @@
-const { isLoggedIn } = require('../auth/auth');
+const { isLoggedIn } = require('../util/auth');
 const { BadRequest, Unauthorized } = require('../errors/index');
 
 module.exports.guest = (req, res, next) => {

@@ -2,7 +2,7 @@ const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { guest, auth } = require('../../middleware/auth');
-const { attemptSignOut, attemptSignIn, attemptLogin, attemptRegister } = require('../../auth/auth');
+const { attemptSignOut, attemptSignIn, attemptLogin, attemptRegister } = require('../../util/auth');
 const AuthUser = require('../../models/auth-user');
 const {
   userLoginSchema,

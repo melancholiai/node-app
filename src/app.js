@@ -12,6 +12,8 @@ module.exports.createApp = store => {
   // bodyParser
   app.use(express.json());
 
+  app.use('/image-uploads', express.static('image-uploads'));
+
   const { name, secret, maxAge, secure } = SESSION_OPTIONS;
 
   // initializing the cookie session managment
