@@ -2,11 +2,18 @@ const { Unauthorized } = require('../errors');
 const AuthUser = require('../models/auth-user');
 const { SESSION_OPTIONS } = require('../config/cache-config');
 
-module.exports.isLoggedIn = req => !!req.session.userId;
-
-module.exports.attemptLogin = (req, userId) => {
+module.exports.isLoggedIn = req => {
   if (req.session) {
-    req.session.userId = userId;
+    if (req.session.authUserId) {
+      return true;
+    }
+  }
+  return false;
+};
+
+module.exports.attemptLogin = (req, authUserId) => {
+  if (req.session) {
+    req.session.authUserId = authUserId;
     return true;
   }
   return false;

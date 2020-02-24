@@ -43,7 +43,7 @@ module.exports.createApp = store => {
 
   app.use('/friendrequest', friendRequest);
 
-  app.use('/blacklist', blackList);
+  app.use('/user/me/blacklist/', blackList);
 
   app.use('/tags', tags);
 

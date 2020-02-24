@@ -21,8 +21,8 @@ router.patch(
   '/change',
   auth,
   catchAsync(async (req, res) => {
-    const { userId } = req.session;
-    const user = await AuthUser.findById(userId);
+    const { authUserId } = req.session;
+    const user = await AuthUser.findById(authUserId);
     if (!user) {
       throw new BadRequest("Could not find user's account, please try again.");
     }
@@ -43,7 +43,7 @@ router.patch(
 
     await user.changePassword(newPassword);
 
-    await AuthUser.findByIdAndUpdate(userId, { password: user.password });
+    await AuthUser.findByIdAndUpdate(authUserId, { password: user.password });
 
     // log the user out: deletes the cookie
     await attemptSignOut(req, res);

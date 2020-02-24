@@ -4,13 +4,13 @@ const { SESSION_OPTIONS } = require('../config/cache-config');
 const AuthUser = require('../models/auth-user');
 
 module.exports.checkSignedIn = req => {
-  if (!req.session.userId) {
+  if (!req.session.authUserId) {
     throw new AuthenticationError('Unauthorized. Client must be signed in.');
   }
 };
 
 module.exports.checkSignedOut = req => {
-  if (req.session.userId) {
+  if (req.session.authUserId) {
     throw new AuthenticationError('Unauthorized. Client must be signed out.');
   }
 };

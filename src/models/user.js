@@ -39,6 +39,10 @@ const userSchema = new Schema(
   }
 );
 
+userSchema.statics.getUserFromAuthId = async function(authUserId) {
+  return await User.findOne({ authUserId });
+};
+
 userSchema.methods.getAuthUser = async function() {
   return await AuthUser.findById(this.authUserId);
 };

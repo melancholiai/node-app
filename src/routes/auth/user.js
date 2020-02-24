@@ -38,13 +38,17 @@ router.post(
     const { email, password } = req.body;
 
     // validates a valid non taken email and username
-    const user = await attemptSignIn(email, password);
+    const authUser = await attemptSignIn(email, password);
 
     // setting the session cookie on the requesting user
-    if (!attemptLogin(req, user.id)) {
+    if (!attemptLogin(req, authUser.id)) {
       throw new CustomHttpError('something went wrong, please try again.', 500);
     }
-    res.status(200).json(user);
+
+    // update the session with the User model id
+    req.session.userId = (await User.getUserFromAuthId(authUser.id)).id;
+    console.log(req.session.userId);
+    res.status(200).json(authUser);
   })
 );
 

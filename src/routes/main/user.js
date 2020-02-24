@@ -2,12 +2,16 @@ const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { auth } = require('../../middleware/auth');
-const { nonBlackList } = require('../../middleware/relationship');
+const {
+  nonBlackList,
+  nonFriend,
+  blackListed
+} = require('../../middleware/relationship');
 const { objectIdSchema } = require('../../joi-schemas/utils');
 const User = require('../../models/user');
 const FriendRequest = require('../../models/friend-request');
 const Notification = require('../../models/notification');
-const { BadRequest, Unauthorized, NotFound } = require('../../errors');
+const { Unauthorized, NotFound } = require('../../errors');
 
 const router = Router();
 
@@ -17,7 +21,7 @@ router.get(
   auth,
   catchAsync(async (req, res) => {
     const { userId } = req.session;
-    const user = await User.findOne({ authUserId: userId });
+    const user = await User.findById(userId);
     const authUser = await user.getAuthUser();
     res.status(200).json({ ...user._doc, authUser });
   })
@@ -40,7 +44,7 @@ router.get(
     const requestedUser = await validateRequestedUser(req.params.userId);
 
     const { userId } = req.session;
-    const requestingUser = await User.findOne({ authUserId: userId });
+    const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
       res.status(302).redirect('/user/me');
       return;
@@ -59,7 +63,7 @@ router.get(
     const requestedUser = await validateRequestedUser(req.params.userId);
 
     const { userId } = req.session;
-    const requestingUser = await User.findOne({ authUserId: userId });
+    const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
       res.status(302).redirect('/user/me');
       return;
@@ -69,31 +73,25 @@ router.get(
   })
 );
 
-// GET => /user/:userId/friendRequest
+// POST => /user/:userId/friend
 router.post(
-  '/:userId/friendRequest',
-  [auth, nonBlackList],
+  '/:userId/friend',
+  [auth, nonBlackList, nonFriend],
   catchAsync(async (req, res) => {
     const requestedUser = await validateRequestedUser(req.params.userId);
 
     const { userId } = req.session;
-    const requestingUser = await User.findOne({ authUserId: userId });
+    const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
       res.status(302).redirect('/user/me');
       return;
-    }
-
-    if (requestingUser.friends.includes(requestedUser.id)) {
-      throw new Unauthorized(
-        "Could not send a request because You're already friends."
-      );
     }
 
     if (
       !(await FriendRequest.doesntExist(requestingUser.id, requestedUser.id))
     ) {
       throw new Unauthorized(
-        'Could not send a request because a request has been sent in the past.'
+        'Could not send a request because an active request has been sent in the past.'
       );
     }
 
@@ -115,7 +113,63 @@ router.post(
         isRead: false
       });
     }
-    res.status(200).json({ message: 'friend requested sent.' });
+    res.status(200).json(newFriendRequest);
+  })
+);
+
+// POST => /user/:userId/blacklist/add
+router.post(
+  '/:userId/blacklist/add',
+  [auth, nonBlackList],
+  catchAsync(async (req, res) => {
+    const requestedUserToAdd = await validateRequestedUser(req.params.userId);
+    const { userId } = req.session;
+    const user = await User.findById(userId);
+
+    // remove from these users from each other's friends list if exists there
+    // TODO: do in one session
+    if (user.friends.includes(requestedUserToAdd.id)) {
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          $pull: { friends: requestedUserToAdd.id }
+        },
+        { safe: true }
+      );
+      await User.findByIdAndUpdate(
+        requestedUserToAdd.id,
+        {
+          $pull: { friends: userId }
+        },
+        { safe: true }
+      );
+    }
+
+    // push to black list
+    await User.findByIdAndUpdate(userId, {
+      $push: { blackList: { _id: requestedUserToAdd.id } }
+    });
+    res.status(200).json('Added to blacklist.');
+  })
+);
+
+// POST => /user/:userId/blacklist/remove
+router.post(
+  '/:userId/blacklist/remove',
+  [auth, blackListed],
+  catchAsync(async (req, res) => {
+    const requestedUserToRemove = await validateRequestedUser(
+      req.params.userId
+    );
+    const { userId } = req.session;
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $pull: { blackList: requestedUserToRemove.id }
+      },
+      { safe: true }
+    );
+    res.status(200).json('Removed from blacklist.');
   })
 );
 

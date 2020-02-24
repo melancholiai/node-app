@@ -10,9 +10,9 @@ module.exports = {
   Query: {},
   Mutation: {
     startChat: async (root, args, context, info) => {
-      const { userId } = context.req.session;
+      const { authUserId } = context.req.session;
       const { userIds, title } = args;
-      await Joi.validate(args, startChatSchema(userId), { abortEarly: false });
+      await Joi.validate(args, startChatSchema(authUserId), { abortEarly: false });
 
       // validate every user id is a valid user in the database by finding and counting them all against entered users
       const idsFound = await AuthUser.where('_id')
@@ -24,7 +24,7 @@ module.exports = {
       }
 
       // push the user who starts the chat into the whole userIds array
-      userIds.push(userId);
+      userIds.push(authUserId);
 
       // create the chat
       const chat = await Chat.create({ title, users: userIds });

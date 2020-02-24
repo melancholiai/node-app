@@ -23,7 +23,7 @@ module.exports = {
       return AuthUser.findById(args.id);
     },
     basicInfo: (root, args, context, info) => {
-      return AuthUser.findById(context.req.session.userId);
+      return AuthUser.findById(context.req.session.authUserId);
     }
   },
   Mutation: {
@@ -37,10 +37,10 @@ module.exports = {
     login: async (root, args, context, info) => {
       await Joi.validate(args, userLoginSchema, { abortEarly: false });
       const { email, password } = args;
-      const user = await auth.attemptSignIn(email, password);
+      const authUser = await auth.attemptSignIn(email, password);
 
       // once the request is done the session middleware will set a cookie
-      context.req.session.userId = user.id;
+      context.req.session.authUserId = authUser.id;
 
       return user;
     },

@@ -19,17 +19,12 @@ router.post(
   '/create',
   auth,
   catchAsync(async (req, res) => {
-    const { userId } = req.session;
-    if (!userId) {
-      throw new Unauthorized(
-        'only logged in users can create a new chat. please log in.'
-      );
-    }
+    const { authUserId } = req.session;
     const { userIds, title } = req.body;
     await startChatSchema.validateAsync(req.body, { abortEarly: false });
 
     // validate the creating user is not on the body array
-    if (userIds.includes(userId)) {
+    if (userIds.includes(authUserId)) {
       throw new BadRequest('Only unique users allowed');
     }
 
@@ -42,7 +37,7 @@ router.post(
       throw new BadRequest('One or more users entered are invalid');
     }
     // push the user who starts the chat into the whole userIds array
-    userIds.push(userId);
+    userIds.push(authUserId);
     // create the chat
     const chat = await Chat.create({ title, users: userIds });
     // update each user with the new chat
