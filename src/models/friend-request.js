@@ -25,17 +25,16 @@ const friendRequestSchema = new Schema(
   }
 );
 
-// check if a friend request with the combination of the requester and the target already exists
-friendRequestSchema.statics.doesntExist = async function(requester, target) {
-  //TODO: should go both ways?
-  // return ((await this.where({ requestedById: requester, targetId: target}).countDocuments()) === 0 &&
-  // (await this.where({ requestedById: target, targetId: requester}).countDocuments()) === 0);
-  return (
-    (await this.where({
-      requestedById: requester,
-      targetId: target
-    }).countDocuments()) === 0
-  );
+friendRequestSchema.statics.alreadyExist = async function(requester, target) {
+  // validate there is no existing request
+  if ((await this.where({ requestedById: requester, targetId: target }).countDocuments()) !== 0) {
+      return true;
+  }
+  // validate there is no cross friend request which is active
+  if (await this.where({ requestedById: target, targetId: requester, isActive: true }).countDocuments() !== 0) {
+    return true;
+  }
+  return false;
 };
 
 friendRequestSchema.methods.getUsernames = async function() {

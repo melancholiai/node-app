@@ -11,7 +11,7 @@ const { objectIdSchema } = require('../../joi-schemas/utils');
 const User = require('../../models/user');
 const FriendRequest = require('../../models/friend-request');
 const Notification = require('../../models/notification');
-const { Unauthorized, NotFound } = require('../../errors');
+const { BadRequest, Unauthorized, NotFound } = require('../../errors');
 
 const router = Router();
 
@@ -83,12 +83,12 @@ router.post(
     const { userId } = req.session;
     const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
-      res.status(302).redirect('/user/me');
-      return;
+      throw new BadRequest('You cannot friend request yourself.')
     }
 
+    // the other user might have declined or ignored the request
     if (
-      !(await FriendRequest.doesntExist(requestingUser.id, requestedUser.id))
+      (await FriendRequest.alreadyExist(requestingUser.id, requestedUser.id))
     ) {
       throw new Unauthorized(
         'Could not send a request because an active request has been sent in the past.'
@@ -124,6 +124,9 @@ router.post(
   catchAsync(async (req, res) => {
     const requestedUserToAdd = await validateRequestedUser(req.params.userId);
     const { userId } = req.session;
+    if (requestedUserToAdd.id === userId) {
+      throw new BadRequest('Cannot blacklist yourself.')
+    }
     const user = await User.findById(userId);
 
     // remove from these users from each other's friends list if exists there
