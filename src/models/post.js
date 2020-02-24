@@ -12,7 +12,8 @@ const postSchema = new Schema(
     },
     imageUrl: {
       type: String,
-      required: true
+      required: true,
+      unique: true
     },
     location: {
       lat: Number,

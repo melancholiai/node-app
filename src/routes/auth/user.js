@@ -101,7 +101,7 @@ router.get(
     // TODO: projection, sanitization
     const id = req.params.userId;
     await objectIdSchema.validateAsync({ id });
-    return res.status(200).json(await AuthUser.findById(id));
+    res.status(200).json(await AuthUser.findById(id));
   })
 );
 
