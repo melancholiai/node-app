@@ -1,2 +1,2 @@
-# REST \ Apollo GraphQL Chat Application
-# using MongoDB \ Redis \ Swagger \ Elasticsearch \ Docker and more
+# REST Social Network Application
+- using Express, MongoDB, Redis, Elasticsearch, Docker and more

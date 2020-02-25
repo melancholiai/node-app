@@ -52,4 +52,5 @@ router.patch(
     res.status(200).json({ message: 'Blacklist is now clear.' });
   })
 );
+
 module.exports = router;

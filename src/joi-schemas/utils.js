@@ -6,9 +6,18 @@ const objectIdSchema = Joi.object({
 });
 
 const booleanSchema = Joi.object({
-  bool: Joi.boolean()
-    .label('Boolean')
+  bool: Joi.boolean().label('Boolean')
 });
+
+const uniqueArrayOfObjectIds = (name, min, max) =>
+  Joi.array()
+    .required()
+    .unique()
+    .min(min)
+    .max(max)
+    .items(Joi.objectId().label(name))
+    .label(name + 's');
 
 exports.objectIdSchema = objectIdSchema;
 exports.booleanSchema = booleanSchema;
+exports.uniqueArrayOfObjectIds = uniqueArrayOfObjectIds;
