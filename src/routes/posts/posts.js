@@ -10,6 +10,7 @@ const { BadRequest } = require('../../errors');
 
 const { newPostSchema } = require('../../joi-schemas/post-schema');
 const { coordinatesSchema } = require('../../joi-schemas/utils');
+const { filterSchema } = require('../../joi-schemas/filter-schema');
 
 const multer = require('multer');
 const storage = multer.diskStorage({
@@ -35,10 +36,14 @@ const upload = multer({
 
 const router = Router();
 
-router.get('/', catchAsync(async (req, res) => {
+router.get('/', auth, catchAsync(async (req, res) => {
     const filter = new Filter({
-        distance: req.body.radius
+        distance: req.body.radius,
+        tags: req.body.tags,
+        taggedUsers: req.body.taggedUsers,
+        createdById: req.body.createdById
     });
+    await filterSchema.validateAsync({filter}, { abortEarly: false });
     res.status(200).json(
         await Post.find().where());
 }));
@@ -74,3 +79,16 @@ router.post('/', auth, upload.single('postImage'),catchAsync(async (req, res) =>
     
     }) 
 );
+
+router.put('/comment/:postId', auth, catchAsync(async (req, res) => {
+
+}));
+
+router.put('/like/:postId', auth, catchAsync(async (req, res) => {
+
+}));
+
+router.put('/like/:commentId', auth, catchAsync(async (req, res) => {
+
+}));
+
