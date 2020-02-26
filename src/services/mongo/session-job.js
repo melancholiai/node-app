@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const { CustomHttpError } = require('../../errors');
 
 const createSession = async () => await mongoose.startSession();
- 
-const sessionJob = async (session, jobs) => {
+
+const sessionJob = async jobs => {
+  const session = await mongoose.startSession();
   session.startTransaction();
   try {
     jobs.forEach(async job => {
-      await job;
+      await job.session(session);
     });
     await session.commitTransaction();
   } catch (error) {

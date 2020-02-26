@@ -5,7 +5,7 @@ const { auth } = require('../../middleware/auth');
 const { objectIdSchema, booleanSchema } = require('../../joi-schemas/utils');
 const FriendRequest = require('../../models/friend-request');
 const User = require('../../models/user');
-const { Unauthorized, NotFound, BadRequest } = require('../../errors');
+const { Unauthorized, NotFound } = require('../../errors');
 
 const router = Router();
 

@@ -125,10 +125,14 @@ router.get(
   catchAsync(async (req, res) => {
     const requestedUserToAdd = await validateRequestedUser(req.params.userId);
     const { userId } = req.session;
-    const socialCirclesLimited = await SocialCircle.find({ users: { "$in": [ requestedUserToAdd.id ] }}).select('title admin');
-    const socialCirclesFull = await SocialCircle.find({ users: { "$all": [ requestedUserToAdd.id, userId ] }});
-    //TODO: substract the limited from full
-    res.status(200).json(socialCirclesLimited);
+    
+    // substracting the limited data from the full data
+    const socialCircles = await SocialCircle.find({ users: { "$in": [ requestedUserToAdd.id ] }});
+    const full = socialCircles.filter(sc => sc.users.includes(userId))
+    const limited = socialCircles.filter(sc => !sc.users.includes(userId))
+    let immutableArray = limited.map(x => x._doc);
+    immutableArray = immutableArray.map(({users, ...rest}) => rest);
+    res.status(200).json([ ...full, ...immutableArray ]);
   })
 );
 

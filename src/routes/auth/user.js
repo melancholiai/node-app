@@ -123,17 +123,9 @@ router.post(
       session.endSession();
     }
 
-    // const updateAuthUserIsVerified = AuthUser.findByIdAndUpdate(
-    //   id,
-    //   {
+    // await sessionJob([AuthUser.findByIdAndUpdate(id, {
     //     verifiedAt: Date.now()
-    //   },
-    //   { session }
-    // );
-    // // create a user model which holds the auth-user id as a field
-    // const createUserModel = User.create([{ authUserId: id }], { session });
-
-    // await sessionJob(session, [updateAuthUserIsVerified, createUserModel]);
+    //   }), User.create([{ authUserId: id }])]);
 
     res.status(200).json({ message: 'Account is Activated' });
   })
