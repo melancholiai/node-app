@@ -46,8 +46,6 @@ const authUserSchema = new Schema(
   }
 );
 
-/*in this function we'll keep the pre ES6 function call to have the 'this' keyword
-  representing the current user object and not the outer scope */
 authUserSchema.pre('save', async function() {
   if (this.isModified('password')) {
     await this.changePassword(this.password);

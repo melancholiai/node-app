@@ -1,13 +1,28 @@
+const mongoose = require('mongoose');
 const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { guest, auth } = require('../../middleware/auth');
+<<<<<<< HEAD
 const { attemptSignOut, attemptSignIn, attemptLogin, attemptRegister } = require('../../util/auth');
+=======
+const {
+  attemptSignOut,
+  attemptSignIn,
+  attemptLogin,
+  attemptRegister
+} = require('../../util/auth');
+>>>>>>> origin/master
 const AuthUser = require('../../models/auth-user');
+const User = require('../../models/user');
 const {
   userLoginSchema,
   userSignupSchema
 } = require('../../joi-schemas/user-schema');
+const {
+  createSession,
+  sessionJob
+} = require('../../services/mongo/session-job');
 const { objectIdSchema } = require('../../joi-schemas/utils');
 const { CustomHttpError, Unauthorized } = require('../../errors');
 const { sendMail } = require('../../services/mail/mail');
@@ -27,13 +42,17 @@ router.post(
     const { email, password } = req.body;
 
     // validates a valid non taken email and username
-    const user = await attemptSignIn(email, password);
+    const authUser = await attemptSignIn(email, password);
 
     // setting the session cookie on the requesting user
-    if (!attemptLogin(req, user.id)) {
+    if (!attemptLogin(req, authUser.id)) {
       throw new CustomHttpError('something went wrong, please try again.', 500);
     }
-    res.status(200).json(user);
+
+    // update the session with the User model id
+    req.session.userId = (await User.getUserFromAuthId(authUser.id)).id;
+    console.log(req.session.userId);
+    res.status(200).json(authUser);
   })
 );
 
@@ -45,13 +64,16 @@ router.post(
     await userSignupSchema.validateAsync(req.body, { abortEarly: false });
     const { email, username } = req.body;
     // checks the email and username aren't taken
-    await attemptRegister(email, username)
+    await attemptRegister(email, username);
     const user = new AuthUser(req.body);
     const verificationUrl = user.createVerificationUrl();
+    console.log(verificationUrl);
     const template = verificationMail(user.email, verificationUrl);
 
     // send confirmation mail
-    const mailResponse = await sendMail(template);
+    //const mailResponse = await sendMail(template);
+    mailResponse = true;
+
     if (!mailResponse) {
       throw new CustomHttpError(mailResponse, 500);
     }
@@ -88,7 +110,36 @@ router.post(
       throw new BadRequest('Account is already active.');
     }
 
-    await AuthUser.findByIdAndUpdate(id, { verifiedAt: Date.now() });
+    //TODO: make generic session method
+
+    // two database operation that entwined with each other, if one fails undo the other
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      await AuthUser.findByIdAndUpdate(id, {
+        verifiedAt: Date.now()}).session(session);
+      await User.create([{ authUserId: id }], { session })
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      console.log(error);
+      throw new CustomHttpError('Something went wrong', 500);
+    } finally {
+      session.endSession();
+    }
+
+    // const updateAuthUserIsVerified = AuthUser.findByIdAndUpdate(
+    //   id,
+    //   {
+    //     verifiedAt: Date.now()
+    //   },
+    //   { session }
+    // );
+    // // create a user model which holds the auth-user id as a field
+    // const createUserModel = User.create([{ authUserId: id }], { session });
+
+    // await sessionJob(session, [updateAuthUserIsVerified, createUserModel]);
+
     res.status(200).json({ message: 'Account is Activated' });
   })
 );
