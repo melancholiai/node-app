@@ -3,16 +3,12 @@ const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { guest, auth } = require('../../middleware/auth');
-<<<<<<< HEAD
-const { attemptSignOut, attemptSignIn, attemptLogin, attemptRegister } = require('../../util/auth');
-=======
 const {
   attemptSignOut,
   attemptSignIn,
   attemptLogin,
   attemptRegister
 } = require('../../util/auth');
->>>>>>> origin/master
 const AuthUser = require('../../models/auth-user');
 const User = require('../../models/user');
 const {
