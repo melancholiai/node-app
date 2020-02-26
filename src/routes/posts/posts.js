@@ -4,6 +4,7 @@ const { isLoggedIn } = require('../../util/auth');
 const { catchAsync } = require('../../middleware/errors');
 const { auth } = require('../../middleware/auth');
 const Post = require('../../models/post');
+const Filter = require('../../models/filter');
 const { CustomHttpError, Unauthorized } = require('../../errors');
 const { BadRequest } = require('../../errors');
 
@@ -35,6 +36,9 @@ const upload = multer({
 const router = Router();
 
 router.get('/', catchAsync(async (req, res) => {
+    const filter = new Filter({
+        distance: req.body.radius
+    });
     res.status(200).json(
         await Post.find().where());
 }));
