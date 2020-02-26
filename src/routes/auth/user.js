@@ -47,7 +47,6 @@ router.post(
 
     // update the session with the User model id
     req.session.userId = (await User.getUserFromAuthId(authUser.id)).id;
-    console.log(req.session.userId);
     res.status(200).json(authUser);
   })
 );

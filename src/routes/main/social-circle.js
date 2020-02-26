@@ -67,8 +67,7 @@ router.post(
 // PUT => /socialcircle/:socialcircleId/edit
 router.put(
   '/:socialcircleId/edit',
-  auth,
-  //TODO: isAdmin middleware?
+  [auth, isAdmin(SocialCircle, 'params.socialcircleId')],
   catchAsync(async (req, res) => {
     const socialCircle = await validateRequestedSocialCircle(req.params);
     await socialCircleSchema.validateAsync(req.body, { abortEarly: false });
@@ -92,8 +91,7 @@ router.put(
 // DELETE => /socialcircle/:socialcircleId/delete
 router.delete(
   '/:socialcircleId/delete',
-  auth,
-  //TODO: isAdmin middleware?
+  [auth, isAdmin(SocialCircle, 'params.socialcircleId')],
   catchAsync(async (req, res) => {
     const socialCircle = await validateRequestedSocialCircle(req.params);
     await SocialCircle.findByIdAndDelete(socialCircle.id);

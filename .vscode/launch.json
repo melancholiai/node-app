@@ -11,8 +11,9 @@
       "address": "localhost",
       "port": 9229,
       "restart": true,
-      "localRoot": "${workspaceFolder}/src/index.js",
+      "localRoot": "${workspaceFolder}",
       "remoteRoot": "/usr/src/app",
+      "protocol": "inspector"
     },
     {
       "type": "node",

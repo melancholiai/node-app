@@ -11,6 +11,7 @@ const { objectIdSchema } = require('../../joi-schemas/utils');
 const User = require('../../models/user');
 const FriendRequest = require('../../models/friend-request');
 const Notification = require('../../models/notification');
+const SocialCircle = require('../../models/social-circle');
 const { BadRequest, Unauthorized, NotFound } = require('../../errors');
 
 const router = Router();
@@ -114,6 +115,20 @@ router.post(
       });
     }
     res.status(200).json(newFriendRequest);
+  })
+);
+
+// GET => /user/me/socialcircles
+router.get(
+  '/:userId/socialcircles',
+  [auth, nonBlackList],
+  catchAsync(async (req, res) => {
+    const requestedUserToAdd = await validateRequestedUser(req.params.userId);
+    const { userId } = req.session;
+    const socialCirclesLimited = await SocialCircle.find({ users: { "$in": [ requestedUserToAdd.id ] }}).select('title admin');
+    const socialCirclesFull = await SocialCircle.find({ users: { "$all": [ requestedUserToAdd.id, userId ] }});
+    //TODO: substract the limited from full
+    res.status(200).json(socialCirclesLimited);
   })
 );
 

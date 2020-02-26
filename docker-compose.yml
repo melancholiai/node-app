@@ -22,6 +22,7 @@ services:
       dockerfile: docker/docker-redis.dockerfile
     ports:
       - '${REDIS_PORT_DOCKER}:${REDIS_PORT_DOCKER}'
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes: 
       - ../data/redis:/data
     networks:
