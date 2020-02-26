@@ -7,6 +7,9 @@ const Post = require('../../models/post');
 const { CustomHttpError, Unauthorized } = require('../../errors');
 const { BadRequest } = require('../../errors');
 
+const { newPostSchema } = require('../../joi-schemas/post-schema');
+const { coordinatesSchema } = require('../../joi-schemas/utils');
+
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -32,7 +35,8 @@ const upload = multer({
 const router = Router();
 
 router.get('/', catchAsync(async (req, res) => {
-
+    res.status(200).json(
+        await Post.find().where());
 }));
 
 router.get('/:postId', auth, catchAsync(async (req, res) => {
@@ -52,10 +56,13 @@ router.put('/:postId', auth, catchAsync(async (req, res) => {
 );
 
 router.post('/', auth, upload.single('postImage'),catchAsync(async (req, res) => {
+    const coordinates = getCurrentLocation();
+    await coordinatesSchema.validateAsync(coordinates[0], coordinates[1], { abortEarly: false });
+
         const post = new Post({
             createdById: req.body.userId,
             imageUrl: req.file.path,
-            location: getCurrentLocation,
+            location: coordinates,
             description: req.body.description,
             isPublic: req.body.isPublic
         });

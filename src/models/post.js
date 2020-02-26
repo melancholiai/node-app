@@ -16,8 +16,14 @@ const postSchema = new Schema(
       unique: true
     },
     location: {
-      lat: Number,
-      lng: Number,
+      type: {
+        type: string,
+        default: "Point"
+      },
+      coordinates: {
+        type: [Number],
+        index: "2dsphere"
+      },
       required: true
     },
     description: {
