@@ -6,4 +6,4 @@ node_modules
 
 *.conf*
 
-docker/config/redis.conf
+docker/config

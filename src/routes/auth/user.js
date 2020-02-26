@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
@@ -16,11 +15,10 @@ const {
   userSignupSchema
 } = require('../../joi-schemas/user-schema');
 const {
-  createSession,
-  sessionJob
-} = require('../../services/mongo/session-job');
+  transactionOperations
+} = require('../../services/mongo/transaction-operations');
 const { objectIdSchema } = require('../../joi-schemas/utils');
-const { CustomHttpError, Unauthorized } = require('../../errors');
+const { CustomHttpError } = require('../../errors');
 const { sendMail } = require('../../services/mail/mail');
 const { verificationMail } = require('../../services/mail/mail-templates');
 const { ValidateUrl } = require('../../services/cryptography');
@@ -105,27 +103,17 @@ router.post(
       throw new BadRequest('Account is already active.');
     }
 
-    //TODO: make generic session method
-
-    // two database operation that entwined with each other, if one fails undo the other
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
+    const setAuthUserVerifiedAt = async session => {
       await AuthUser.findByIdAndUpdate(id, {
-        verifiedAt: Date.now()}).session(session);
-      await User.create([{ authUserId: id }], { session })
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      console.log(error);
-      throw new CustomHttpError('Something went wrong', 500);
-    } finally {
-      session.endSession();
+        verifiedAt: Date.now()
+      }).session(session);
     }
 
-    // await sessionJob([AuthUser.findByIdAndUpdate(id, {
-    //     verifiedAt: Date.now()
-    //   }), User.create([{ authUserId: id }])]);
+    const createUserModel = async session => {
+      await User.create([{ authUserId: id }], { session });
+    }
+      
+    await transactionOperations([setAuthUserVerifiedAt, createUserModel]);
 
     res.status(200).json({ message: 'Account is Activated' });
   })
