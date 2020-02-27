@@ -11,6 +11,3 @@ module.exports = {
     PASSWORD_RESET_BYTES,
     PASSWORD_RESET_TIMEOUT = ONE_HOUR
   } = process.env;
-
-
-

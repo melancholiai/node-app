@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
@@ -13,6 +12,9 @@ const { userResetPasswordSchema } = require('../../joi-schemas/user-schema');
 const { ValidateUrl } = require('../../services/cryptography');
 const { sendMail } = require('../../services/mail/mail');
 const { resetPasswordMail } = require('../../services/mail/mail-templates');
+const {
+  transactionOperations
+} = require('../../services/mongo/transaction-operations');
 
 const router = Router();
 
@@ -112,23 +114,12 @@ router.post(
 
     await user.changePassword(body.password);
 
-    // two database operation that entwined with each other, if one fails undo the other
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      await AuthUser.findByIdAndUpdate(id, { password: user.password }).session(
-        session
-      );
-      await PasswordReset.findByIdAndUpdate(latestPasswordReset.id, {
-        used: true
-      }).session(session);
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      throw new CustomHttpError('Something went wrong', 500);
-    } finally {
-      session.endSession();
-    }
+    const changePassword = async session => await AuthUser.findByIdAndUpdate(id, { password: user.password }).session(session);
+    const setPasswordResetAsUsed = async session => await PasswordReset.findByIdAndUpdate(latestPasswordReset.id, {
+          used: true
+        }).session(session);
+
+    await transactionOperations([changePassword, setPasswordResetAsUsed]);
 
     res.status(200).json({ message: 'Password reset successfuly' });
   })

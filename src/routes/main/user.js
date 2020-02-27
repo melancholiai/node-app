@@ -10,8 +10,15 @@ const {
 const { objectIdSchema } = require('../../joi-schemas/utils');
 const User = require('../../models/user');
 const FriendRequest = require('../../models/friend-request');
-const Notification = require('../../models/notification');
+const {
+  notificate,
+  NOTIFICATION_TYPES
+} = require('../../util/notification-handler');
+const SocialCircle = require('../../models/social-circle');
 const { BadRequest, Unauthorized, NotFound } = require('../../errors');
+const {
+  transactionOperations
+} = require('../../services/mongo/transaction-operations');
 
 const router = Router();
 
@@ -83,37 +90,50 @@ router.post(
     const { userId } = req.session;
     const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
-      throw new BadRequest('You cannot friend request yourself.')
+      throw new BadRequest('You cannot friend request yourself.');
     }
 
     // the other user might have declined or ignored the request
-    if (
-      (await FriendRequest.alreadyExist(requestingUser.id, requestedUser.id))
-    ) {
+    if (await FriendRequest.alreadyExist(requestingUser.id, requestedUser.id)) {
       throw new Unauthorized(
         'Could not send a request because an active request has been sent in the past.'
       );
     }
 
-    // TODO: factory for entity-notification
     const newFriendRequest = await FriendRequest.create({
       requestedById: requestingUser.id,
       targetId: requestedUser.id,
       isActive: true
     });
 
-    // check if the requested user had black listed the requesting user, if so don't sent a notification
-    if (!requestedUser.blackList.includes(requestingUser.id)) {
-      await Notification.create({
-        notifiedById: requestingUser.id,
-        targetId: requestedUser.id,
-        notificationType: 'friendRequest',
-        entityId: newFriendRequest.id,
-        onEntity: 'FriendRequest',
-        isRead: false
-      });
-    }
+    await notificate(
+      requestingUser.id,
+      requestedUser.id,
+      newFriendRequest.id,
+      NOTIFICATION_TYPES.sentFriendRequest
+    );
+
     res.status(200).json(newFriendRequest);
+  })
+);
+
+// GET => /user/me/socialcircles
+router.get(
+  '/:userId/socialcircles',
+  [auth, nonBlackList],
+  catchAsync(async (req, res) => {
+    const requestedUserToAdd = await validateRequestedUser(req.params.userId);
+    const { userId } = req.session;
+
+    // substracting the limited data from the full data
+    const socialCircles = await SocialCircle.find({
+      users: { $in: [requestedUserToAdd.id] }
+    });
+    const full = socialCircles.filter(sc => sc.users.includes(userId));
+    const limited = socialCircles.filter(sc => !sc.users.includes(userId));
+    let immutableArray = limited.map(x => x._doc);
+    immutableArray = immutableArray.map(({ users, ...rest }) => rest);
+    res.status(200).json([...full, ...immutableArray]);
   })
 );
 
@@ -125,33 +145,46 @@ router.post(
     const requestedUserToAdd = await validateRequestedUser(req.params.userId);
     const { userId } = req.session;
     if (requestedUserToAdd.id === userId) {
-      throw new BadRequest('Cannot blacklist yourself.')
+      throw new BadRequest('Cannot blacklist yourself.');
     }
     const user = await User.findById(userId);
 
-    // remove from these users from each other's friends list if exists there
-    // TODO: do in one session
+    const operations = [];
+
+    // remove these users from each other's friends list if they're friends
     if (user.friends.includes(requestedUserToAdd.id)) {
-      await User.findByIdAndUpdate(
-        userId,
-        {
-          $pull: { friends: requestedUserToAdd.id }
-        },
-        { safe: true }
+      operations.push(
+        async session =>
+          await User.findByIdAndUpdate(
+            userId,
+            {
+              $pull: { friends: requestedUserToAdd.id }
+            },
+            { safe: true }
+          ).session(session)
       );
-      await User.findByIdAndUpdate(
-        requestedUserToAdd.id,
-        {
-          $pull: { friends: userId }
-        },
-        { safe: true }
+      operations.push(
+        async session =>
+          await User.findByIdAndUpdate(
+            requestedUserToAdd.id,
+            {
+              $pull: { friends: userId }
+            },
+            { safe: true }
+          ).session(session)
       );
     }
 
-    // push to black list
-    await User.findByIdAndUpdate(userId, {
-      $push: { blackList: { _id: requestedUserToAdd.id } }
-    });
+    operations.push(
+      async session =>
+        await User.findByIdAndUpdate(userId, {
+          $push: { blackList: { _id: requestedUserToAdd.id } }
+        }).session(session)
+    );
+
+    // all these changes are entwined with each other make sure they are all done or non of them
+    await transactionOperations(operations);
+
     res.status(200).json('Added to blacklist.');
   })
 );

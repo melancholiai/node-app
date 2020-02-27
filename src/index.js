@@ -15,7 +15,7 @@ elasticSearchClient.cluster.health({},function(err,resp,status) {
     await mongoConnect();
 
     const app = createApp();
-
+    
     app.listen({ port: APP_PORT }, () => console.log(APP_URL));
   } catch (error) {
     console.log(error);

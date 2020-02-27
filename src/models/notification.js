@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
-const Schema = mongoose.Schema;
+const { NOTIFICATION_TYPES } = require('../util/notification-handler');
 
+const Schema = mongoose.Schema;
 const notificationSchema = new Schema(
   {
     notifiedById: {
@@ -14,11 +15,6 @@ const notificationSchema = new Schema(
       ref: 'User',
       required: true
     },
-    notificationType: {
-      type: String,
-      enum: ['commented', 'likedPost', 'likedComment', 'friendRequest'],
-      required: true
-    },
     entityId: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -27,11 +23,16 @@ const notificationSchema = new Schema(
     onEntity: {
       type: String,
       required: true,
-      enum: ['FriendRequest', 'Regular'],
-      default: 'Regular'
+      enum: ['FriendRequest', 'Post', 'Comment', 'SocialCircle']
+    },
+    notificationType: {
+      type: String,
+      enum: NOTIFICATION_TYPES,
+      required: true
     },
     isRead: {
-      type: Boolean
+      type: Boolean,
+      default: false
     }
   },
   {
