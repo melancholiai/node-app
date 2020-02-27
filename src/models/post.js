@@ -17,7 +17,7 @@ const postSchema = new Schema(
     },
     location: {
       type: {
-        type: string,
+        type: String,
         default: "Point"
       },
       coordinates: {
