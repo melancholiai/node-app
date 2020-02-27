@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');

@@ -10,7 +10,10 @@ const {
 const { objectIdSchema } = require('../../joi-schemas/utils');
 const User = require('../../models/user');
 const FriendRequest = require('../../models/friend-request');
-const Notification = require('../../models/notification');
+const {
+  notificate,
+  NOTIFICATION_TYPES
+} = require('../../util/notification-handler');
 const SocialCircle = require('../../models/social-circle');
 const { BadRequest, Unauthorized, NotFound } = require('../../errors');
 const {
@@ -97,24 +100,19 @@ router.post(
       );
     }
 
-    // TODO: factory for entity-notification
     const newFriendRequest = await FriendRequest.create({
       requestedById: requestingUser.id,
       targetId: requestedUser.id,
       isActive: true
     });
 
-    // check if the requested user had black listed the requesting user, if so don't sent a notification
-    if (!requestedUser.blackList.includes(requestingUser.id)) {
-      await Notification.create({
-        notifiedById: requestingUser.id,
-        targetId: requestedUser.id,
-        notificationType: 'friendRequest',
-        entityId: newFriendRequest.id,
-        onEntity: 'FriendRequest',
-        isRead: false
-      });
-    }
+    await notificate(
+      requestingUser.id,
+      requestedUser.id,
+      newFriendRequest.id,
+      NOTIFICATION_TYPES.sentFriendRequest
+    );
+
     res.status(200).json(newFriendRequest);
   })
 );

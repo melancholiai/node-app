@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const User = require('./user');
+const { existingDocuments } = require('../services/mongo/mongo-actions');
 
 const Schema = mongoose.Schema;
-
 const socialCircleSchema = new Schema(
   {
     title: {
@@ -31,15 +31,9 @@ socialCircleSchema.statics.isValid = async function(creatingUserId, enteredUsers
     if (enteredUsers.includes(creatingUserId)) {
       return false;
     }
+
     // validate every user id is a valid user in the database by finding and counting them all against entered users
-    const idsFound = await User.where('_id')
-      .in(enteredUsers)
-      .countDocuments();
-    
-    if (idsFound !== enteredUsers.length) {
-      return false
-    }
-    return true;
+    return await existingDocuments(User, '_id', enteredUsers)
 }
 
 const SocialCircle = mongoose.model('SocialCircle', socialCircleSchema);

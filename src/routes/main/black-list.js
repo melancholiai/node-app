@@ -5,6 +5,7 @@ const { auth } = require('../../middleware/auth');
 const { editBlackListSchema } = require('../../joi-schemas/black-list');
 const User = require('../../models/user');
 const { BadRequest } = require('../../errors');
+const { existingDocuments } = require('../../services/mongo/mongo-actions');
 
 const router = Router();
 
@@ -23,10 +24,7 @@ router.patch(
     }
 
     // validate there is a user for every provided userid to block
-    const idsFound = await User.where('_id')
-      .in(userIds)
-      .countDocuments();
-    if (idsFound !== userIds.length) {
+    if (!await existingDocuments(User, '_id', userIds)) {
       throw new BadRequest('One or more users entered are invalid');
     }
 

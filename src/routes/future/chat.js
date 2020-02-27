@@ -11,6 +11,7 @@ const {
 } = require('../../joi-schemas/chat-schema');
 const { objectIdSchema } = require('../../joi-schemas/utils');
 const { BadRequest, Unauthorized } = require('../../errors');
+const { existingDocuments } = require('../../services/mongo/mongo-actions');
 
 const router = Router();
 
@@ -29,17 +30,14 @@ router.post(
     }
 
     // validate every user id is a valid user in the database by finding and counting them all against entered users
-    const idsFound = await AuthUser.where('_id')
-      .in(userIds)
-      .countDocuments();
-
-    if (idsFound !== userIds.length) {
+    if (!await existingDocuments(AuthUser, '_id', userIds)) {
       throw new BadRequest('One or more users entered are invalid');
     }
+
     // push the user who starts the chat into the whole userIds array
     userIds.push(authUserId);
-    // create the chat
     const chat = await Chat.create({ title, users: userIds });
+    
     // update each user with the new chat
     await AuthUser.updateMany(
       { _id: { $in: userIds } }, // for all the users who's id is IN the userIds collection
