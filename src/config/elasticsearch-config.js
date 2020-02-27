@@ -8,7 +8,7 @@ const {
 } = process.env;
 
 module.exports.ELASTICSEARCH_OPTIONS = {
-  hostname: APP_HOSTNAME_DOCKER,
+  hostname: APP_HOSTNAME,
   port: ELASTICSEARCH_PORT,
   username: ELASTICSEARCH_USERNAME,
   password: ELASTICSEARCH_PASSWORD
