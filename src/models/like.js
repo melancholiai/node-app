@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
-
 const likeSchema = new Schema(
   {
-    likedById: {
+    likedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,

@@ -41,7 +41,7 @@ router.get('/', auth, catchAsync(async (req, res) => {
         distance: req.body.radius,
         tags: req.body.tags,
         taggedUsers: req.body.taggedUsers,
-        createdById: req.body.createdById
+        createdBy: req.body.createdBy
     });
     await filterSchema.validateAsync({filter}, { abortEarly: false });
     res.status(200).json(
@@ -60,7 +60,7 @@ router.put('/:postId', auth, catchAsync(async (req, res) => {
         for (const ops of req.body) {
             updateOps[ops.propName] = ops.value;
         }
-        res.status(200).json(await Post.update({id = postId}, { $set: updateOps})); 
+        res.status(200).json(await Post.updateOne({id = postId}, { $set: updateOps})); 
     })
 );
 
@@ -69,7 +69,7 @@ router.post('/', auth, upload.single('postImage'),catchAsync(async (req, res) =>
     await coordinatesSchema.validateAsync(coordinates[0], coordinates[1], { abortEarly: false });
 
         const post = new Post({
-            createdById: req.body.userId,
+            createdBy: req.body.userId,
             imageUrl: req.file.path,
             location: coordinates,
             description: req.body.description,

@@ -19,29 +19,9 @@ const { BadRequest, Unauthorized, NotFound } = require('../../errors');
 const {
   transactionOperations
 } = require('../../services/mongo/transaction-operations');
+const { HttpResponse } = require('../../models/custom/http-response');
 
 const router = Router();
-
-// GET => /user/me
-router.get(
-  '/me',
-  auth,
-  catchAsync(async (req, res) => {
-    const { userId } = req.session;
-    const user = await User.findById(userId);
-    const authUser = await user.getAuthUser();
-    res.status(200).json({ ...user._doc, authUser });
-  })
-);
-
-// PATCH => /user/me
-router.patch(
-  '/me',
-  [auth],
-  catchAsync(async (req, res) => {
-    // TODO: update avatar
-  })
-);
 
 // GET => /user/:userId
 router.get(
@@ -53,7 +33,7 @@ router.get(
     const { userId } = req.session;
     const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
-      res.status(302).redirect('/user/me');
+      res.status(302).redirect('/userarea');
       return;
     }
 
@@ -72,7 +52,7 @@ router.get(
     const { userId } = req.session;
     const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
-      res.status(302).redirect('/user/me');
+      res.status(302).redirect('/userarea');
       return;
     }
 
@@ -101,8 +81,8 @@ router.post(
     }
 
     const newFriendRequest = await FriendRequest.create({
-      requestedById: requestingUser.id,
-      targetId: requestedUser.id,
+      requestedBy: requestingUser.id,
+      target: requestedUser.id,
       isActive: true
     });
 
@@ -110,24 +90,24 @@ router.post(
       requestingUser.id,
       requestedUser.id,
       newFriendRequest.id,
-      NOTIFICATION_TYPES.sentFriendRequest
+      NOTIFICATION_TYPES.SENT_FRIEND_REQUEST
     );
 
     res.status(200).json(newFriendRequest);
   })
 );
 
-// GET => /user/me/socialcircles
+// GET => /user/:userId/socialcircles
 router.get(
   '/:userId/socialcircles',
   [auth, nonBlackList],
   catchAsync(async (req, res) => {
-    const requestedUserToAdd = await validateRequestedUser(req.params.userId);
+    const requestedUser = await validateRequestedUser(req.params.userId);
     const { userId } = req.session;
 
     // substracting the limited data from the full data
     const socialCircles = await SocialCircle.find({
-      users: { $in: [requestedUserToAdd.id] }
+      users: { $in: [requestedUser.id] }
     });
     const full = socialCircles.filter(sc => sc.users.includes(userId));
     const limited = socialCircles.filter(sc => !sc.users.includes(userId));
@@ -185,7 +165,7 @@ router.post(
     // all these changes are entwined with each other make sure they are all done or non of them
     await transactionOperations(operations);
 
-    res.status(200).json('Added to blacklist.');
+    res.status(200).json(new HttpResponse(`Added ${requestedUserToAdd.username} to blacklist.`));
   })
 );
 
@@ -205,13 +185,12 @@ router.post(
       },
       { safe: true }
     );
-    res.status(200).json('Removed from blacklist.');
+    res.status(200).json(new HttpResponse(`Removed ${requestedUserToRemove.username} from blacklist.`));
   })
 );
 
-const validateRequestedUser = async userId => {
-  const requestedId = userId;
-  await objectIdSchema.validateAsync({ id: requestedId });
+const validateRequestedUser = async requestedId => {
+  await objectIdSchema.validateAsync(requestedId);
   const requestedUser = await User.findById(requestedId);
   if (!requestedUser) {
     throw new NotFound();

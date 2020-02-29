@@ -2,6 +2,7 @@ const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { guest, auth } = require('../../middleware/auth');
+const { HttpResponse } = require('../../models/custom/http-response');
 const AuthUser = require('../../models/auth-user');
 const { userChangePasswordSchema } = require('../../joi-schemas/user-schema');
 const { CustomHttpError, Unauthorized, BadRequest } = require('../../errors');
@@ -29,11 +30,6 @@ router.patch(
       throw new BadRequest("Could not find user's account, please try again.");
     }
 
-    const { currentPassword, newPassword, newPasswordConfirmation } = req.body;
-    if (!(await user.matchesPassword(currentPassword))) {
-      throw new Unauthorized('Wrong Password.');
-    }
-
     await userChangePasswordSchema.validateAsync(
       {
         currentPassword,
@@ -43,14 +39,18 @@ router.patch(
       { abortEarly: false }
     );
 
-    await user.changePassword(newPassword);
+    const { currentPassword, newPassword, newPasswordConfirmation } = req.body;
+    if (!(await user.matchesPassword(currentPassword))) {
+      throw new Unauthorized('Wrong Password.');
+    }
 
+    await user.changePassword(newPassword);
     await AuthUser.findByIdAndUpdate(authUserId, { password: user.password });
 
     // log the user out: deletes the cookie
     await attemptSignOut(req, res);
 
-    res.status(200).json({ message: 'password changed successfully' });
+    res.status(200).json(new HttpResponse('Password changed successfully'));
   })
 );
 
@@ -67,9 +67,8 @@ router.post(
       throw new BadRequest('Could not find requested user.');
     }
 
-    const passwordReset = new PasswordReset({ userId: user.id });
-    const resetUrl = passwordReset.createResetPasswordUrl();
-    const template = resetPasswordMail(user.email, resetUrl);
+    const passwordReset = new PasswordReset({ user: user.id });
+    const template = resetPasswordMail(user.email, passwordReset.createResetPasswordUrl());
     const mailResponse = await sendMail(template);
     if (!mailResponse) {
       throw new CustomHttpError(mailResponse, 500);
@@ -77,13 +76,14 @@ router.post(
     await passwordReset.save();
     res
       .status(201)
-      .json({ message: 'Password reset request has been sent to your email.' });
+      .json(new HttpResponse('Password reset request has been sent to your email.'));
   })
 );
 
 // POST => /auth/password/reset
 router.post(
   '/reset',
+  guest,
   catchAsync(async (req, res) => {
     const { query, body } = req;
     await resetPasswordSchema.validateAsync(
@@ -96,11 +96,11 @@ router.post(
       throw new BadRequest('Could not find the requested user.');
     }
     const latestPasswordReset = await PasswordReset.findOne({
-      userId: id
-    }).sort('-createdAt');
+      user: id
+    }).sort({createdAt: -1});
     if (
       !latestPasswordReset ||
-      !latestPasswordReset.isValid() ||
+      !latestPasswordReset.isValid(query.token) ||
       !ValidateUrl(req.originalUrl, query)
     ) {
       throw new BadRequest('Invalid password reset link.');
@@ -113,15 +113,15 @@ router.post(
     }
 
     await user.changePassword(body.password);
-
     const changePassword = async session => await AuthUser.findByIdAndUpdate(id, { password: user.password }).session(session);
+
     const setPasswordResetAsUsed = async session => await PasswordReset.findByIdAndUpdate(latestPasswordReset.id, {
           used: true
         }).session(session);
 
     await transactionOperations([changePassword, setPasswordResetAsUsed]);
 
-    res.status(200).json({ message: 'Password reset successfuly' });
+    res.status(200).json(new HttpResponse('Password reset successfuly'));
   })
 );
 

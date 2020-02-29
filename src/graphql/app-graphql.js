@@ -2,10 +2,10 @@ const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const session = require('express-session');
 
-const { SESS_NAME, SESS_SECRET, SESS_LIFETIME } = require('./config/main-config');
-const typeDefs = require('./graphql/typeDefs/index');
-const resolvers = require('./graphql/resolvers/index');
-const schemaDirectives = require('./graphql/directives/index');
+const { SESS_NAME, SESS_SECRET, SESS_LIFETIME } = require('../config/main-config');
+const typeDefs = require('./typeDefs/index');
+const resolvers = require('./resolvers/index');
+const schemaDirectives = require('./directives/index');
 
 module.exports.createGraphqlApp = store => {
   const app = express();

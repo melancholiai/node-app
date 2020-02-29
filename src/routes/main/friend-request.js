@@ -1,14 +1,18 @@
+const mongoose = require('mongoose');
 const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { auth } = require('../../middleware/auth');
-const { objectIdSchema, booleanSchema } = require('../../joi-schemas/utils');
+const { objectIdSchema } = require('../../joi-schemas/utils');
+const {
+  socialCircleSchema
+} = require('../../joi-schemas/friend-request-schema');
+const { notificate, NOTIFICATION_TYPES } = require('../../util/notification-handler');
 const FriendRequest = require('../../models/friend-request');
 const User = require('../../models/user');
 const { Unauthorized, NotFound } = require('../../errors');
-const {
-  transactionOperations
-} = require('../../services/mongo/transaction-operations');
+const { transactionOperations } = require('../../services/mongo/transaction-operations');
+const { HttpResponse } = require('../../models/custom/http-response');
 
 const router = Router();
 
@@ -18,8 +22,10 @@ router.get(
   auth,
   catchAsync(async (req, res) => {
     const { friendRequestId } = req.params;
-    await objectIdSchema.validateAsync({ id: friendRequestId });
-    const friendRequest = await FriendRequest.findById(friendRequestId);
+    await objectIdSchema.validateAsync(friendRequestId);
+    const friendRequest = await FriendRequest.findById(friendRequestId)
+      .populate({ path: 'requestedBy', select: 'username' })
+      .populate({ path: 'target', select: 'username' });
     if (!friendRequest) {
       throw new NotFound();
     }
@@ -27,21 +33,21 @@ router.get(
     // check the session user is part of the friend request
     const { userId } = req.session;
     if (
-      userId != friendRequest.requestedById &&
-      userId != friendRequest.targetId
+      userId != friendRequest.requestedBy.id &&
+      userId != friendRequest.target.id
     ) {
       throw new Unauthorized();
     }
 
     // if the session user is the requesting user remove the isActive property
-    if (userId == friendRequest.requestedById) {
+    if (userId == friendRequest.requestedBy.id) {
       const { isActive, ...fr } = friendRequest._doc;
-      res.status(200).json({ ...fr, ...(await friendRequest.getUsernames()) });
+      res.status(200).json({...fr});
       return;
     }
     res
       .status(200)
-      .json({ ...friendRequest._doc, ...(await friendRequest.getUsernames()) });
+      .json(friendRequest);
   })
 );
 
@@ -51,26 +57,27 @@ router.post(
   auth,
   catchAsync(async (req, res) => {
     const { hasAccepted } = req.query;
-    await booleanSchema.validateAsync({ bool: hasAccepted });
-
     const { friendRequestId } = req.params;
-    await objectIdSchema.validateAsync({ id: friendRequestId });
-    friendRequest = await FriendRequest.findById(friendRequestId);
+    await socialCircleSchema.validateAsync({ friendRequestId, hasAccepted });
 
-    // friend request is invalid or inactive
-    if (!friendRequest || !friendRequest.isActive) {
+    // friend request is valid or active and targeted for the session user
+    const { userId } = req.session;
+    friendRequest = await FriendRequest.findOne({
+      _id: friendRequestId,
+      isActive: true,
+      target: userId
+    });
+    if (!friendRequest) {
       throw new NotFound();
     }
 
-    // validate session user is the target
-    const { userId } = req.session;
-    const user = await User.findById(userId);
-    if (friendRequest.targetId != user.id) {
-      throw new Unauthorized();
-    }
-
-    // validate requesting user is not blocked by target
-    if (user.isBlackListed(friendRequest.requestedById)) {
+    // validate requesting user is not blocked by target - the FR shouldn't have arrived extra layer of security
+    if (
+      (await User.findOne({
+        _id: userId,
+        blackList: mongoose.Types.ObjectId(friendRequest.requestedBy)
+      })) !== null
+    ) {
       throw new NotFound();
     }
 
@@ -86,26 +93,31 @@ router.post(
     if (hasAccepted == 'true') {
       operations.push(
         async session =>
-          await User.findByIdAndUpdate(friendRequest.targetId, {
-            $push: { friends: friendRequest.requestedById }
+          await User.findByIdAndUpdate(friendRequest.target, {
+            $push: { friends: friendRequest.requestedBy }
           }).session(session)
       );
       operations.push(
         async session =>
-          await User.findByIdAndUpdate(friendRequest.requestedById, {
-            $push: { friends: friendRequest.targetId }
+          await User.findByIdAndUpdate(friendRequest.requestedBy, {
+            $push: { friends: friendRequest.target }
           }).session(session)
       );
 
-      // TODO: notificate
-
+      // notificate friend request accepted, doesn't need to be on session
+      await notificate(
+        friendRequest.target,
+        friendRequest.requestedBy,
+        friendRequest.id,
+        NOTIFICATION_TYPES.ACCEPTED_FRIEND_REQUEST
+      );
     } else {
       // if rejected check for a cross FR and delete it so the user who rejected the FR would be able to request the other user and thus preventing deadlock
       operations.push(
         async session =>
           await FriendRequest.findOneAndDelete({
-            requestedById: friendRequest.targetId,
-            targetId: friendRequest.requestedById
+            requestedBy: friendRequest.target,
+            target: friendRequest.requestedBy
           }).session(session)
       );
     }
@@ -113,7 +125,7 @@ router.post(
     // all these changes are entwined with each other make sure they are all done or non of them
     await transactionOperations(operations);
 
-    res.status(201).json({ message: 'Done.' });
+    res.status(201).json(new HttpResponse('Done.'));
   })
 );
 

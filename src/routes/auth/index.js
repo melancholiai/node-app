@@ -1,7 +1,7 @@
-const user = require('./user');
-const password = require('./password');
+const authUserRoutes = require('./user');
+const passwordRoutes = require('./password');
 
 module.exports = {
-  authUser: user,
-  password
+  authUserRoutes,
+  passwordRoutes
 };

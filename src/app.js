@@ -1,8 +1,8 @@
 const express = require('express');
 
 const session = require('./services/express-session/session');
-const { authUser, password } = require('./routes/auth');
-const { user, friendRequest, blackList, tags, socialCircle } = require('./routes/main');
+const { authUserRoutes, passwordRoutes } = require('./routes/auth');
+const { userRoutes, userAreaRoutes, friendRequestRoutes, blackListRoutes, tagRoutes, socialCircleRoutes } = require('./routes/main');
 const { notFound, serverError } = require('./middleware/errors');
 const swaggerInit = require('./services/swagger');
 
@@ -17,19 +17,21 @@ module.exports.createApp = () => {
 
   swaggerInit(app, '/api-docs');
 
-  app.use('/auth', authUser);
+  app.use('/auth', authUserRoutes);
 
-  app.use('/auth/password', password);
+  app.use('/auth/password', passwordRoutes);
 
-  app.use('/user', user);
+  app.use('/user', userRoutes);
+  
+  app.use('/userarea', userAreaRoutes);
 
-  app.use('/friendrequest', friendRequest);
+  app.use('/userarea/blacklist/', blackListRoutes);
+  
+  app.use('/friendrequest', friendRequestRoutes);
 
-  app.use('/user/me/blacklist/', blackList);
+  app.use('/tag', tagRoutes);
 
-  app.use('/tags', tags);
-
-  app.use('/socialcircle', socialCircle);
+  app.use('/socialcircle', socialCircleRoutes);
 
   app.use(notFound);
 

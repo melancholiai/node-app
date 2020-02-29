@@ -1,32 +1,29 @@
+const mongoose = require('mongoose');
+
 const Notification = require('../models/notification');
 const { existingDocuments } = require('../services/mongo/mongo-actions');
 const User = require('../models/user');
 
 const NOTIFICATION_TYPES = {
-  commented: { value: 'commented', entity: 'Comment' },
-  likedPost: { value: 'likedPost', entity: 'Post' },
-  likedComment: { value: 'likedComment', entity: 'Comment' },
-  sentFriendRequest: { value: 'sentFriendRequest', entity: 'FriendRequest' },
-  acceptedFriendRequest: {
-    value: 'acceptedFriendRequest',
-    entity: 'FriendRequest'
-  },
-  addedToSocialCircle: { value: 'addedToSocialCircle', entity: 'SocialCircle' },
-  taggedOnPost: { value: 'taggedOnPost', entity: 'Post' }
+  COMMENTED: { value: 'commented', entity: 'Comment' },
+  LIKED_POST: { value: 'likedPost', entity: 'Post' },
+  LIKED_COMMENT: { value: 'likedComment', entity: 'Comment' },
+  SENT_FRIEND_REQUEST: { value: 'sentFriendRequest', entity: 'FriendRequest' },
+  ACCEPTED_FRIEND_REQUEST: { value: 'acceptedFriendRequest', entity: 'FriendRequest' },
+  ADDED_TO_SOCIAL_CIRCLE: { value: 'addedToSocialCircle', entity: 'SocialCircle' },
+  TAGGED_ON_POST: { value: 'taggedOnPost', entity: 'Post' }
 };
 
 exports.notificate = async (byId, toId, entityId, type) => {
-  if (!isValid(byId, toId, type)) {
-    return null;
+  if (await isValid(byId, toId, type)) {
+    return await Notification.create({
+      notifiedBy: byId,
+      target: toId,
+      entity: entityId,
+      onEntity: type.entity,
+      notificationType: type.value
+    });
   }
-
-  return await Notification.create({
-    notifiedById: byId,
-    targetId: toId,
-    entityId,
-    onEntity: type.entity,
-    notificationType: type.value
-  });
 };
 
 const isValid = async (byId, toId, type) => {
@@ -34,10 +31,13 @@ const isValid = async (byId, toId, type) => {
   if (!(await existingDocuments(User, '_id', [byId, toId]))) {
     return false;
   }
-  // FIXME: bug
-  // check if the target user is blocking the notificating user, if so don't notify
-  const user = await User.findOne( { _id: toId, blackList: mongoose.Types.ObjectId(byId) });
-  return user === null;
+  // check if the target user is blocking the notificating user. if so don't notify
+  return (
+    (await User.findOne({
+      _id: toId,
+      blackList: mongoose.Types.ObjectId(byId)
+    })) === null
+  );
 };
 
 exports.NOTIFICATION_TYPES = NOTIFICATION_TYPES;

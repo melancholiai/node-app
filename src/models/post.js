@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
-
 const postSchema = new Schema(
   {
-    createdById: {
+    createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -24,7 +23,7 @@ const postSchema = new Schema(
         type: [Number],
         index: "2dsphere"
       },
-      required: true
+      required: false// was true
     },
     description: {
       type: String
@@ -55,7 +54,8 @@ const postSchema = new Schema(
     ],
     isPublic: {
       type: Boolean,
-      required: true
+      required: true,
+      default: true
     }
   },
   {

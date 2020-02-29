@@ -2,6 +2,7 @@ const { Router } = require('express');
 
 const { catchAsync } = require('../../middleware/errors');
 const { guest, auth } = require('../../middleware/auth');
+const { HttpResponse } = require('../../models/custom/http-response');
 const {
   attemptSignOut,
   attemptSignIn,
@@ -27,7 +28,7 @@ const { verifyEmailSchema } = require('../../joi-schemas/url-schema');
 
 const router = Router();
 
-// POST => /login
+// POST => /auth/login
 router.post(
   '/login',
   guest,
@@ -44,18 +45,19 @@ router.post(
     }
 
     // update the session with the User model id
-    req.session.userId = (await User.getUserFromAuthId(authUser.id)).id;
+    req.session.userId = (await User.findOne({ authUser: authUser.id })).id;
     res.status(200).json(authUser);
   })
 );
 
-// POST => /register
+// POST => /auth/register
 router.post(
   '/register',
   guest,
   catchAsync(async (req, res) => {
     await userSignupSchema.validateAsync(req.body, { abortEarly: false });
     const { email, username } = req.body;
+    
     // checks the email and username aren't taken
     await attemptRegister(email, username);
     const user = new AuthUser(req.body);
@@ -77,16 +79,16 @@ router.post(
   })
 );
 
-// POST => /logout
+// POST => /auth/logout
 router.post(
   '/logout',
   auth,
   catchAsync(async (req, res) => {
-    res.status(200).json({ message: await attemptSignOut(req, res) });
+    res.status(200).json(new HttpResponse(await attemptSignOut(req, res)));
   })
 );
 
-// POST => /verify
+// POST => /auth/verify
 router.post(
   '/verify',
   guest,
@@ -110,24 +112,23 @@ router.post(
     }
 
     const createUserModel = async session => {
-      await User.create([{ authUserId: id }], { session });
+      await User.create([{ authUser: id, username: user.username }], { session });
     }
-      
+    
     await transactionOperations([setAuthUserVerifiedAt, createUserModel]);
 
-    res.status(200).json({ message: 'Account is Activated' });
+    res.status(200).json(new HttpResponse('Account is Activated'));
   })
 );
 
-// GET => /user/:userId
+// GET => /auth/:userId
 router.get(
   '/:userId',
   auth,
   catchAsync(async (req, res) => {
-    // TODO: projection, sanitization
-    const id = req.params.userId;
-    await objectIdSchema.validateAsync({ id });
-    res.status(200).json(await AuthUser.findById(id));
+    const { userId } = req.params;
+    await objectIdSchema.validateAsync(userId);
+    res.status(200).json(await AuthUser.findById(userId));
   })
 );
 

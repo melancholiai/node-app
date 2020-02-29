@@ -5,17 +5,17 @@ const { NOTIFICATION_TYPES } = require('../util/notification-handler');
 const Schema = mongoose.Schema;
 const notificationSchema = new Schema(
   {
-    notifiedById: {
+    notifiedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    targetId: {
+    target: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    entityId: {
+    entity: {
       type: Schema.Types.ObjectId,
       required: true,
       refPath: 'onEntity'

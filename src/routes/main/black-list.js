@@ -6,10 +6,11 @@ const { editBlackListSchema } = require('../../joi-schemas/black-list');
 const User = require('../../models/user');
 const { BadRequest } = require('../../errors');
 const { existingDocuments } = require('../../services/mongo/mongo-actions');
+const { HttpResponse } = require('../../models/custom/http-response');
 
 const router = Router();
 
-// PATCH => user/me/blacklist/edit
+// PATCH => userarea/blacklist/edit
 router.patch(
   '/edit',
   auth,
@@ -23,7 +24,7 @@ router.patch(
       throw new BadRequest('You cannot black list yourself.');
     }
 
-    // validate there is a user for every provided userid to block
+    // validate there is an existing user for every provided userid to block
     if (!await existingDocuments(User, '_id', userIds)) {
       throw new BadRequest('One or more users entered are invalid');
     }
@@ -31,23 +32,24 @@ router.patch(
     // remove friends if they are set to be black listed
     const user = await User.findById(userId);
     const newFriendsList = user.friends.filter(friendId => !userIds.includes(friendId.toString()));
+    
     await User.findOneAndUpdate(
       { _id: userId },
       { $set: { blackList: userIds, friends: newFriendsList } }
     );
 
-    res.status(200).json({ message: 'Blacklist was edited successfully' });
+    res.status(200).json(new HttpResponse('Blacklist was edited successfully'));
   })
 );
 
-// PATCH => user/me/blacklist/clear
+// PATCH => userarea/blacklist/clear
 router.patch(
   '/clear',
   auth,
   catchAsync(async (req, res) => {
     const { userId } = req.session;
     await User.findOneAndUpdate({ _id: userId }, { $set: { blackList: [] } });
-    res.status(200).json({ message: 'Blacklist is now clear.' });
+    res.status(200).json(new HttpResponse('Blacklist is now clear.'));
   })
 );
 

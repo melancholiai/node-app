@@ -56,7 +56,7 @@ router.get(
   catchAsync(async (req, res) => {
     const { userId } = req.session;
     const { chatId } = req.params;
-    await objectIdSchema.validateAsync({ id: chatId });
+    await objectIdSchema.validateAsync(chatId);
 
     // check authorized user
     await isChatMember(userId, chatId);

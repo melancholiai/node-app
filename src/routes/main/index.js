@@ -1,13 +1,15 @@
-const user = require('./user');
-const friendRequest = require('./friend-request');
-const blackList = require('./black-list');
-const tags = require('./tags');
-const socialCircle = require('./social-circle');
+const userRoutes = require('./user');
+const userAreaRoutes = require('./user-area');
+const friendRequestRoutes = require('./friend-request');
+const blackListRoutes = require('./black-list');
+const tagRoutes = require('./tag');
+const socialCircleRoutes = require('./social-circle');
 
 module.exports = {
-  user,
-  friendRequest,
-  blackList,
-  tags,
-  socialCircle
+  userRoutes,
+  userAreaRoutes,
+  friendRequestRoutes,
+  blackListRoutes,
+  tagRoutes,
+  socialCircleRoutes
 };

@@ -6,7 +6,6 @@ const { BCRYPT_HASH_ROUNDS } = require('../config/auth-config');
 const { VerifyPasswordQueryParams } = require('./custom/url-query-params');
 
 const Schema = mongoose.Schema;
-
 const authUserSchema = new Schema(
   {
     email: {
@@ -15,7 +14,6 @@ const authUserSchema = new Schema(
       unique: true,
       validate: {
         validator: async email => AuthUser.doesntExist({ email }),
-        // TODO: security
         message: ({ value }) => `Email ${value} is already in use`
       }
     },
@@ -25,7 +23,6 @@ const authUserSchema = new Schema(
       unique: true,
       validate: {
         validator: username => AuthUser.doesntExist({ username }),
-        // TODO: security
         message: ({ value }) => `Username ${value} is already in use`
       }
     },
@@ -65,10 +62,9 @@ authUserSchema.methods.createVerificationUrl = function() {
   return buildUrl(new VerifyPasswordQueryParams('verify', this.id, this.email));
 };
 
+// bcrypt can work on streams long as 72 bits thus creating an sha256 hash will turn any length to 44 bit
 authUserSchema.methods.changePassword = async function(newPassword) {
-  // bcrypt can work on streams long as 72 bits thus creating an sha256 hash will turn any length to 44 bit
   const hashedPassword = hashPassword(newPassword);
-  // hash using bcrypt
   this.password = await hash(hashedPassword, parseInt(BCRYPT_HASH_ROUNDS));
 };
 

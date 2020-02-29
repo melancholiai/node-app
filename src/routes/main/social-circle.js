@@ -6,7 +6,7 @@ const { isAdmin } = require('../../middleware/admin');
 const { BadRequest, Unauthorized } = require('../../errors');
 const SocialCircle = require('../../models/social-circle');
 const { notificate, NOTIFICATION_TYPES } = require('../../util/notification-handler');
-const { socialCircleSchema } = require('../../joi-schemas/social-circle');
+const { socialCircleSchema } = require('../../joi-schemas/social-circle-schema');
 const { objectIdSchema } = require('../../joi-schemas/utils');
 
 const router = Router();
@@ -16,7 +16,7 @@ router.get(
   '/:socialcircleId',
   auth,
   catchAsync(async (req, res) => {
-    const socialCircle = await validateRequestedSocialCircle(req.params);
+    const socialCircle = await getExistingSocialCircle(req.params);
     const { userId } = req.session;
     if (!socialCircle.users.includes(userId)) {
       throw new Unauthorized('Only members of the circle can view this.');
@@ -46,7 +46,7 @@ router.post(
     const { userIds, title } = req.body;
 
     if (!(await SocialCircle.isValid(userId, userIds))) {
-      throw new BadRequest('entered parameters are not valid.');
+      throw new BadRequest('Entered parameters are not valid.');
     }
 
     const socialCircle = await SocialCircle.create({
@@ -55,15 +55,15 @@ router.post(
       admin: userId
     });
 
+    // notificate all added users
     for (targetId of userIds) {
       await notificate(
         userId,
         targetId,
         socialCircle.id,
-        NOTIFICATION_TYPES.addedToSocialCircle
+        NOTIFICATION_TYPES.ADDED_TO_SOCIAL_CIRCLE
       );
     }
-
     res.status(201).json(socialCircle);
   })
 );
@@ -73,20 +73,19 @@ router.put(
   '/:socialcircleId/edit',
   [auth, isAdmin(SocialCircle, 'params.socialcircleId')],
   catchAsync(async (req, res) => {
-    const socialCircle = await validateRequestedSocialCircle(req.params);
     await socialCircleSchema.validateAsync(req.body, { abortEarly: false });
+    const socialCircle = await getExistingSocialCircle(req.params);
     const { userId } = req.session;
     const { userIds, title } = req.body;
     if (!(await SocialCircle.isValid(userId, userIds))) {
-      throw new BadRequest('entered parameters are not valid.');
+      throw new BadRequest('Entered parameters are not valid.');
     }
-    userIds.push(userId);
     res.status(200).json(
       await SocialCircle.findByIdAndUpdate(
         socialCircle.id,
         {
           title,
-          users: userIds
+          users: [...userIds, userId]
         },
         { new: true }
       )
@@ -99,14 +98,17 @@ router.delete(
   '/:socialcircleId/delete',
   [auth, isAdmin(SocialCircle, 'params.socialcircleId')],
   catchAsync(async (req, res) => {
-    const socialCircle = await validateRequestedSocialCircle(req.params);
-    await SocialCircle.findByIdAndDelete(socialCircle.id);
-    res.status(201).json({ message: 'Done.' });
+    const { socialcircleId } = req.params;
+    await objectIdSchema.validateAsync(socialcircleId);
+    const found = await SocialCircle.findByIdAndDelete(socialCircle.id);
+    if (!found) {
+      throw new BadRequest('Could not find the given SocialCircle')
+    }
+    res.status(201).json(new HttpResponse('Done.'));
   })
 );
 
-const validateRequestedSocialCircle = async ({ socialcircleId }) => {
-  await objectIdSchema.validateAsync({ id: socialcircleId });
+const getExistingSocialCircle = async ({ socialcircleId }) => {
   const socialCircle = await SocialCircle.findById(socialcircleId);
   if (!socialCircle) {
     throw new BadRequest('Could not find the requested social circle');

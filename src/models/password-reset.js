@@ -6,14 +6,18 @@ const {
   PASSWORD_RESET_TIMEOUT
 } = require('../config/auth-config');
 const { PasswordResetQueryParams } = require('../models/custom/url-query-params');
+const { generateToken } = require('../services/cryptography');
 
 const Schema = mongoose.Schema;
-
 const passwordResetSchema = new Schema(
   {
-    userId: {
+    user: {
       type: Schema.Types.ObjectId,
       ref: 'AuthUser'
+    },
+    token: {
+      type: String,
+      required: true
     },
     expiredAt: {
       type: Date
@@ -28,12 +32,12 @@ const passwordResetSchema = new Schema(
 );
 
 passwordResetSchema.methods.createResetPasswordUrl = function() {
-  const plainTextToken = generatePlainTextToken(PASSWORD_RESET_BYTES);
-  return buildUrl(new PasswordResetQueryParams('password/reset', this.userId, plainTextToken));
+  this.token = generatePlainTextToken(PASSWORD_RESET_BYTES);
+  return buildUrl(new PasswordResetQueryParams('password/reset', this.user, this.token));
 };
 
-passwordResetSchema.methods.isValid = function() {
-  if (this.used || this.expiredAt < Date.now()) {
+passwordResetSchema.methods.isValid = function(token) {
+  if (this.used || this.expiredAt < Date.now() || this.token !== token) {
     return false;
   }
   return true;
@@ -44,6 +48,7 @@ passwordResetSchema.pre('save', function() {
     this.expiredAt = new Date(new Date().getTime() + parseInt(PASSWORD_RESET_TIMEOUT));
   }
   this.used = false;
+  this.token = generateToken(this.token);
 });
 
 const passwordReset = mongoose.model('passwordReset', passwordResetSchema);

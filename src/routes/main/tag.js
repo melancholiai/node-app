@@ -6,7 +6,7 @@ const Tag = require('../../models/tag');
 
 const router = Router();
 
-// GET => /tags
+// GET => /tag
 router.get(
   '/',
   auth,

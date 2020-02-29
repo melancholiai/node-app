@@ -1,14 +1,16 @@
 const mongoose = require('mongoose');
 
-const AuthUser = require('./auth-user');
-
 const Schema = mongoose.Schema;
-
 const userSchema = new Schema(
   {
-    authUserId: {
+    authUser: {
       type: Schema.Types.ObjectId,
       ref: 'AuthUser',
+      required: true,
+      unique: true
+    },
+    username: {
+      type: String,
       required: true,
       unique: true
     },
@@ -38,14 +40,6 @@ const userSchema = new Schema(
     timestamps: true
   }
 );
-
-userSchema.statics.getUserFromAuthId = async function(authUserId) {
-  return await User.findOne({ authUserId });
-};
-
-userSchema.methods.getAuthUser = async function() {
-  return await AuthUser.findById(this.authUserId);
-};
 
 userSchema.methods.getData = async function(requestingId) {
   if (this.id === requestingId) {

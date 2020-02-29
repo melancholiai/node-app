@@ -1,7 +1,7 @@
 const Joi = require('@hapi/joi');
 Joi.objectId = require('joi-objectid')(Joi);
 
-const createdById = Joi.objectId()
+const createdBy = Joi.objectId()
 .required()
 .label('User Id');
 
@@ -19,7 +19,7 @@ const isPublic = Joi.bool()
 
 
 exports.newPostSchema = Joi.object({
-    createdById,
+    createdBy,
     imageUrl,
     isPublic
 });
