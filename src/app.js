@@ -1,4 +1,5 @@
 const express = require('express');
+var cors = require('cors')
 
 const session = require('./services/express-session/session');
 const { authUserRoutes, passwordRoutes } = require('./routes/auth');
@@ -12,7 +13,8 @@ module.exports.createApp = () => {
   // bodyParser
   app.use(express.json());
 
-  // initializing the cookie session managment
+  app.use(cors({credentials: true, origin: 'http://localhost:4200'}));
+
   app.use(session);
 
   swaggerInit(app, '/api-docs');

@@ -13,8 +13,8 @@ module.exports = session({
   saveUninitialized: false,
   cookie: {
     maxAge,
-    sameSite: true,
+    sameSite: false,//true
     //FIXME: should be secure boolean which is IN_PROD
-    secure: false
+    secure: false,// false
   }
 });
