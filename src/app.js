@@ -4,7 +4,7 @@ const session = require('./services/express-session/session');
 const { authUserRoutes, passwordRoutes } = require('./routes/auth');
 const { userRoutes, userAreaRoutes, friendRequestRoutes, blackListRoutes, tagRoutes, socialCircleRoutes } = require('./routes/main');
 const { notFound, serverError } = require('./middleware/errors');
-const swaggerInit = require('./services/swagger');
+const swaggerInit = require('./services/swagger/swagger');
 
 module.exports.createApp = () => {
   const app = express();
