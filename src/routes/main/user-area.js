@@ -16,7 +16,7 @@ router.get(
   auth,
   catchAsync(async (req, res) => {
     const { userId } = req.session;
-    const user = await await User.findById(userId)
+    const user = await User.findById(userId)
       .populate('authUser')
       .populate({ path: 'friends', select: 'username' })
       .populate({ path: 'blackList', select: 'username' })

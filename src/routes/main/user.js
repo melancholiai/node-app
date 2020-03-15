@@ -33,8 +33,9 @@ router.get(
     const { userId } = req.session;
     const requestingUser = await User.findById(userId);
     if (requestingUser.id === requestedUser.id) {
-      res.status(302).redirect('/userarea');
-      return;
+      // TODO: build in FE
+      // res.status(302).redirect('/userarea');
+      // return;
     }
 
     // get the data based on the relationship between the two
